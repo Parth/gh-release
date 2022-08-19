@@ -1,19 +1,26 @@
+use std::env;
 use std::fs::File;
 use crate::error::Error;
 use reqwest::blocking::{Client, RequestBuilder, Response};
-use crate::release::{ReleaseInfo, UpdateAssetInfo};
+use crate::release::{ReleaseInfo, AssetInfo, UpdateAssetInfo};
 
 mod error;
 mod release;
 
-const GITHUB_URL: &str = "https://github.com";
+const API_URL: &str = "https://api.github.com";
+const UPLOAD_URL: &str = "https://uploads.github.com";
+
 
 fn release_url(repo_info: &RepoInfo) -> String {
-    format!("{}/repos/{}/{}/releases", GITHUB_URL, repo_info.owner, repo_info.repo_name)
+    format!("{}/repos/{}/{}/releases", API_URL, repo_info.owner, repo_info.repo_name)
 }
 
-fn release_assets(repo_info: &RepoInfo, release_id: &str) -> String {
-    format!("{}/{}/assets", release_id, release_url(repo_info))
+fn upload_asset_url(repo_info: &RepoInfo, asset_id: u64) -> String {
+    format!("{}/repos/{}/{}/releases/{}/assets", UPLOAD_URL, repo_info.owner, repo_info.repo_name, asset_id)
+}
+
+fn release_assets(repo_info: &RepoInfo, release_id: u64) -> String {
+    format!("{}/{}/assets", release_url(repo_info), release_id)
 }
 
 fn asset_url(repo_info: &RepoInfo, asset_id: u64) -> String {
@@ -35,15 +42,17 @@ trait GithubAuthRequest {
 impl GithubAuthRequest for RequestBuilder {
     fn send_and_successful(self, auth_token: &str) -> Result<Response, Error> {
         let response = self
-            .header("ACCEPT", "application/vnd.github+json")
+            .header("Accept", "application/vnd.github+json")
+            .header("User-Agent", "Github-Release-rs")
             .header("Authorization",  auth_token)
             .send()?;
+        let status = response.status().as_u16();
 
-        match response.status().as_u16() {
+        match status {
             200 => Ok(response),
             201 => Ok(response),
             302 => Ok(response),
-            _ => Err(Error::Unexpected(format!("Unknown status code: {}", response.status())))
+            _ => Err(Error::HttpError(status, Some(String::from_utf8_lossy(response.bytes()?.as_ref()).to_string())))
         }
     }
 }
@@ -54,16 +63,21 @@ pub struct AuthenticatedUser {
 }
 
 pub struct RepoInfo {
-    owner: String,
-    repo_name: String,
+    pub owner: String,
+    pub repo_name: String,
 }
 
 impl AuthenticatedUser {
     pub fn new(maybe_auth_token: Option<String>) -> Option<AuthenticatedUser> {
+        let auth_token = format!("token {}", maybe_auth_token
+            .unwrap_or(env::var("GITHUB_TOKEN").ok()?));
+        let client = Client::builder()
+            .use_rustls_tls().build()
+            .ok()?;
+
         Some(AuthenticatedUser {
-            auth_token: format!("token {}", maybe_auth_token
-                .and(option_env!("GITHUB_TOKEN"))?),
-            client: Client::new(),
+            auth_token,
+            client,
         })
     }
 
@@ -71,7 +85,7 @@ impl AuthenticatedUser {
         &self,
         repo_info: &RepoInfo,
         asset_id: u64,
-    ) -> Result<ReleaseInfo, Error> {
+    ) -> Result<AssetInfo, Error> {
         Ok(self
             .client
             .get(asset_url(&repo_info, asset_id))
@@ -84,7 +98,7 @@ impl AuthenticatedUser {
         repo_info: &RepoInfo,
         asset_id: u64,
         maybe_asset_info: Option<UpdateAssetInfo>
-    ) -> Result<ReleaseInfo, Error> {
+    ) -> Result<AssetInfo, Error> {
         Ok(self
             .client
             .patch(asset_url(&repo_info, asset_id))
@@ -105,10 +119,10 @@ impl AuthenticatedUser {
     pub fn list_release_assets(
         &self,
         repo_info: &RepoInfo,
-        release_id: &str,
+        release_id: u64,
         per_page: Option<u64>,
         page: Option<u64>,
-    ) -> Result<Vec<ReleaseInfo>, Error> {
+    ) -> Result<Vec<AssetInfo>, Error> {
         Ok(self
             .client
             .patch(release_assets(&repo_info, release_id))
@@ -120,15 +134,15 @@ impl AuthenticatedUser {
     pub fn upload_release_asset(
         &self,
         repo_info: &RepoInfo,
-        release_id: &str,
+        release_id: u64,
         asset_name: &str,
         content_type: &str,
         file: File,
         label: Option<&str>,
-    ) -> Result<ReleaseInfo, Error> {
+    ) -> Result<AssetInfo, Error> {
         let request = self
             .client
-            .patch(release_assets(&repo_info, release_id))
+            .post(upload_asset_url(&repo_info, release_id))
             .query(&[("name", asset_name), ("label", label.unwrap_or(""))])
             .header("Content-Type", content_type)
             .body(file);
