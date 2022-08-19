@@ -1,5 +1,5 @@
 [package]
-name = "github_release"
+name = "github_release_rs"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
