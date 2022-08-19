@@ -2,9 +2,7 @@
 name = "github_release"
 version = "0.1.0"
 edition = "2021"
-description = "a"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Rust bindings for the github release HTTP API"
 
 [dependencies]
 reqwest = { version = "0.11.11", features = ["blocking", "serde_json", "json", "rustls-tls"] }
