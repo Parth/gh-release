@@ -158,8 +158,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "github_release"
-version = "0.1.0"
+name = "github_release_rs"
+version = "0.1.1"
 dependencies = [
  "reqwest",
  "serde",

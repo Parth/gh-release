@@ -12,9 +12,9 @@ pub struct ReleaseClient {
     client: Client,
 }
 
-pub struct RepoInfo {
-    pub owner: String,
-    pub repo_name: String,
+pub struct RepoInfo<'a> {
+    pub owner: &'a str,
+    pub repo_name: &'a str,
 }
 
 impl ReleaseClient {
