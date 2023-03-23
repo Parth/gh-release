@@ -3,7 +3,7 @@ use crate::RepoInfo;
 const API_URL: &str = "https://api.github.com";
 const UPLOAD_URL: &str = "https://uploads.github.com";
 
-fn release_url(repo_info: &RepoInfo) -> String {
+pub fn release_url(repo_info: &RepoInfo) -> String {
     format!(
         "{}/repos/{}/{}/releases",
         API_URL, repo_info.owner, repo_info.repo_name
@@ -14,6 +14,13 @@ pub fn upload_asset_url(repo_info: &RepoInfo, asset_id: u64) -> String {
     format!(
         "{}/repos/{}/{}/releases/{}/assets",
         UPLOAD_URL, repo_info.owner, repo_info.repo_name, asset_id
+    )
+}
+
+pub fn tags_url(repo_info: &RepoInfo) -> String {
+    format!(
+        "{}/repos/{}/{}/git/tags",
+        API_URL, repo_info.owner, repo_info.repo_name
     )
 }
 

@@ -1,5 +1,7 @@
 use crate::error::Error;
-use crate::release::{AssetInfo, ReleaseInfo, UpdateAssetInfo};
+use crate::release::{
+    AssetInfo, CreateReleaseInfo, Release, ReleaseInfo, Tag, TagInfo, UpdateAssetInfo,
+};
 use reqwest::blocking::{Client, RequestBuilder, Response};
 use std::fs::File;
 
@@ -116,6 +118,28 @@ impl ReleaseClient {
         Ok(self
             .client
             .get(url::latest_url(repo_info))
+            .do_it(&self.auth_token)?
+            .json()?)
+    }
+
+    pub fn create_a_release(
+        &self,
+        repo_info: &RepoInfo,
+        release_info: &CreateReleaseInfo,
+    ) -> Result<Release, Error> {
+        Ok(self
+            .client
+            .post(url::release_url(repo_info))
+            .body(serde_json::to_string(&release_info)?)
+            .do_it(&self.auth_token)?
+            .json()?)
+    }
+
+    pub fn create_a_tag(&self, repo_info: &RepoInfo, tag_info: &TagInfo) -> Result<Tag, Error> {
+        Ok(self
+            .client
+            .post(url::tags_url(repo_info))
+            .body(serde_json::to_string(&tag_info)?)
             .do_it(&self.auth_token)?
             .json()?)
     }

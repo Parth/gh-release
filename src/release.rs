@@ -1,6 +1,54 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct CreateReleaseInfo {
+    pub tag_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_commitish: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub draft: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prerelease: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discussion_category_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generate_release_notes: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub make_latest: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TagInfo {
+    pub tag: String,
+    pub message: String,
+    pub object: String,
+    #[serde(rename = "type")]
+    pub type_tagged: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Release {
+    pub node_id: String,
+    pub sha: Option<String>,
+    pub url: String,
+    pub tag: Option<String>,
+    pub message: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Tag {
+    pub node_id: String,
+    pub tag: String,
+    pub sha: String,
+    pub url: String,
+    pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ReleaseInfo {
     pub url: String,
     pub html_url: String,
